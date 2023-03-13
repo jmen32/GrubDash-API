@@ -49,9 +49,28 @@ function createOrders(req, res, next){
     res.status(201).json({data: newOrder})
 }
 
+function orderIdExists(req, res, next){
+    const {orderId} = req.params;
+    const foundOrder = orders.find((order) => order.id === orderId)
+    if(foundOrder){
+        res.locals.order = foundOrder;
+        return next();
+    }else{
+        next({
+            status: 404,
+            message: `Dish does not exist: ${orderId}.`
+        })
+    }
+}
+
+function readOrders(req, res, next){
+    res.json({data: res.locals.order})
+}
+
 
 
 module.exports = {
     listOrders,
     createOrders: [validateBody ,createOrders],
+    readOrders: [orderIdExists, readOrders],
 }
