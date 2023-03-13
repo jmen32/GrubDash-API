@@ -17,6 +17,7 @@ function list(req, res, next){
 // Checks to see if the body of the dish contains all needed properties
 function validateBody(req, res, next){
     const { data: {name, description, price, image_url} = {}} = req.body
+
     if (!name  || name === ""){
         res.status(400).json({error: "Dish must include a name"})
     }
@@ -67,19 +68,39 @@ function dishIdExists(req, res, next){
 function dishBodyIdExists(req, res, next){
     const { data: { id } = {} } = req.body;
     const {dishId} = req.params;
-    if(id && id === dishId){
-        next();
+    if(!id){
+        // If the ID is missing, skip the check and let the next middleware handle the error
+        return next();
     }
-    next({
-        status: 404,
-        message: `Dish id does not match router Id. Dish: ${id}, Route: ${dishId}`
-    })
+    if(id === dishId){
+        next();
+    } else {
+        next({
+            status: 400,
+            message: `Dish id does not match router Id. Dish: ${id}, Route: ${dishId}`
+        });
+    }
 }
-
-
 
 function read(req, res, next){
     res.json({data: res.locals.dish})
+}
+
+function update(req, res, next){
+    const { data: { name, description, price, image_url } = {} } = req.body;
+
+	const dish = res.locals.dish;
+    if(dish){
+    dish.name = name;
+    dish.description = description;
+    dish.price = price;
+    dish.image_url = image_url;
+	res.json({ data: dish});
+    }else {
+        next({
+        status: 404,
+    })
+    }
 }
 
 
@@ -87,4 +108,5 @@ module.exports = {
     list,
     create: [validateBody, create],
     read: [dishIdExists, read],
+    update: [dishIdExists, dishBodyIdExists, validateBody, update],
 }
