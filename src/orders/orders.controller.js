@@ -58,13 +58,46 @@ function orderIdExists(req, res, next){
     }else{
         next({
             status: 404,
-            message: `Dish does not exist: ${orderId}.`
+            message: `Order does not exist: ${orderId}.`
         })
     }
 }
 
+
+function validateStatus(req, res, next){
+    const {data: {id, status} = {}} = req.body;
+    const {orderId} = req.params;
+    if (id && id !== orderId) {
+        res.status(400).json({error: `Order id does not match route id. Order: ${id}, Route: ${orderId}.`});
+    }
+    const validStatus = ["pending", "preparing", "out-for-delivery", "delivered"];
+    if (!status || status === "" || !validStatus.includes(status)) {
+        res.status(400).json({error: "Order must have a status of pending, preparing, out-for-delivery, delivered"});
+    } else if (res.locals.order.status === "delivered") {
+        res.status(400).json({error: "A delivered order cannot be changed"});
+    }
+    next();
+}
+
 function readOrders(req, res, next){
     res.json({data: res.locals.order})
+}
+
+function updateOrders(req, res, next){
+    const {data: {deliverTo, mobileNumber, dishes, status}} = req.body;
+
+    res.locals.order = {
+        id: res.locals.order.id,
+        deliverTo: deliverTo,
+        mobileNumber: mobileNumber,
+        dishes: dishes,
+        status: status,
+    }
+    res.json({data: res.locals.order})
+}
+
+function deleteOrders(req, res, next){
+    
 }
 
 
@@ -73,4 +106,5 @@ module.exports = {
     listOrders,
     createOrders: [validateBody ,createOrders],
     readOrders: [orderIdExists, readOrders],
+    updateOrders: [validateBody, orderIdExists, validateStatus, updateOrders]
 }
